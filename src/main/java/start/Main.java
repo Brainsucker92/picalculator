@@ -20,7 +20,10 @@ public class Main {
     }
 
     private void start() {
-        ExecutorService service = Executors.newCachedThreadPool();
+        ExecutorService service;
+        // service = Executors.newFixedThreadPool(4); // 1.
+        //service = Executors.newCachedThreadPool(); // 2.
+        service = Executors.newWorkStealingPool(); // 3.
         ChudnovskyCalculator calculator = new ChudnovskyCalculator();
         calculator.setExecutorService(service);
 
@@ -34,20 +37,29 @@ public class Main {
         JButton button = new JButton();
         button.setText("Calculate");
 
+        JTextField field = new JTextField();
+        field.setEditable(true);
+
         JLabel label = new JLabel();
         label.setText("Text");
         button.addActionListener(e -> {
             label.setText("Calculating");
-            Thread t = new Thread(() -> {
-                BigDecimal chudnovskyPi = calculator.chudnovsky(100, context);
+            Runnable r = () -> {
+                String text = field.getText();
+                int iterations = Integer.parseInt(text);
+                BigDecimal chudnovskyPi = calculator.calculate(iterations, context);
                 label.setText("Result: " + chudnovskyPi);
                 System.out.println(chudnovskyPi);
-            });
-            t.setName("Verrueckter-Mongo");
-            t.start();
+            };
+            Thread t = new Thread(r);
+
+            //t.start(); // 1.
+            service.submit(r); // 2.
+            //r.run(); // 3.
         });
 
         panel.add(button);
+        panel.add(field);
         panel.add(label);
         frame.add(panel);
 
@@ -56,7 +68,7 @@ public class Main {
             public void windowClosing(WindowEvent e) {
                 service.shutdown();
                 try {
-                    service.awaitTermination(15, TimeUnit.MINUTES);
+                    service.awaitTermination(5, TimeUnit.SECONDS);
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
                 }
