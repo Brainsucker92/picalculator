@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -66,22 +67,31 @@ public class ChudnovskyCalculator implements PiCalculator {
         Supplier<BigDecimal> mul0Supplier = executeCalculation(mul0);
         Supplier<BigDecimal> pow1Supplier = executeCalculation(pow1);
 
+        List.of(f1Supplier, f3Supplier, mul0Supplier).forEach(Supplier::get);
+
         Callable<BigDecimal> addition1 = () -> mul0Supplier.get().add(BigDecimal.valueOf(13591409));
         Callable<BigDecimal> pow2 = () -> new BigDecimal(f3Supplier.get()).pow(3);
+        Supplier<BigDecimal> pow2Supplier = executeCalculation(pow2);
 
         Supplier<BigDecimal> addition1Supplier = executeCalculation(addition1);
+
+        List.of(f2Supplier, pow2Supplier, addition1Supplier).forEach(Supplier::get);
+
         Callable<BigDecimal> m2 = () -> new BigDecimal(f1Supplier.get()).multiply(addition1Supplier.get());
         Supplier<BigDecimal> m2Supplier = executeCalculation(m2);
-        Supplier<BigDecimal> pow2Supplier = executeCalculation(pow2);
 
         Callable<BigDecimal> m3 = () -> new BigDecimal(f2Supplier.get()).multiply(pow2Supplier.get());
 
         Supplier<BigDecimal> m3Supplier = executeCalculation(m3);
 
+        List.of(pow1Supplier, m3Supplier).forEach(Supplier::get);
+
         Callable<BigDecimal> m4 = () -> m3Supplier.get().multiply(pow1Supplier.get());
         Supplier<BigDecimal> m4Supplier = executeCalculation(m4);
-        Supplier<BigDecimal> resultSupplier = () -> m2Supplier.get().divide(m4Supplier.get(), context).stripTrailingZeros();
 
+        List.of(m2Supplier, m4Supplier).forEach(Supplier::get);
+
+        Supplier<BigDecimal> resultSupplier = () -> m2Supplier.get().divide(m4Supplier.get(), context).stripTrailingZeros();
         BigDecimal result = resultSupplier.get();
         return result;
     }
