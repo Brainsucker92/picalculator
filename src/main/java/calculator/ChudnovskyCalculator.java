@@ -8,7 +8,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
 
@@ -104,14 +103,9 @@ public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
     }
 
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
-        IntStream intStream = IntStream.rangeClosed(0, n);
-        Stream<CompletableFuture<BigDecimal>> lotOfWork = intStream.mapToObj(value -> chudnovskyNumber(value, context));
-        CompletableFuture<BigDecimal> result = lotOfWork.reduce((a, b) -> {
-            CompletableFuture<BigDecimal> c = a.thenCombine(b, BigDecimal::add);
-            return c;
-        })
+        return IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
+                .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
                 .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
-        return result;
     }
 
     private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {

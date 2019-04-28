@@ -3,7 +3,6 @@ package calculator;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
@@ -47,9 +46,9 @@ public class BaileyBorweinPlouffeCalculator implements AsyncPiCalculator, PiCalc
     }
 
     private CompletableFuture<BigDecimal> sumBBP(int k, MathContext context) {
-        Optional<CompletableFuture<BigDecimal>> reduce = IntStream.rangeClosed(0, k)
-                .mapToObj(i -> calculateBBP(i, context)).reduce((a, b) -> a.thenCombine(b, BigDecimal::add));
-        return reduce.get();
+        return IntStream.rangeClosed(0, k).mapToObj(i -> calculateBBP(i, context))
+                .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
+                .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
     }
 
     private CompletableFuture<BigDecimal> calculateBBP(int k, MathContext context) {
