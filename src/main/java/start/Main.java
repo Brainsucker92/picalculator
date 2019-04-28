@@ -28,7 +28,6 @@ public class Main {
         service = Executors.newWorkStealingPool(); // 3.
         ChudnovskyCalculator calculator = new ChudnovskyCalculator(service);
 
-
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setTitle("PI Calculator");
@@ -72,6 +71,7 @@ public class Main {
                     label.setText("Please enter valid values.");
                 } else {
                     label.setText("Calculating");
+                    button.setEnabled(false);
                     int iterations = Integer.parseInt(text);
                     int digits = Integer.valueOf(digitsText);
 
@@ -80,6 +80,7 @@ public class Main {
                     chudnovskyPi.thenAccept(bigDecimal -> {
                         String decString = bigDecimal.toString();
                         label.setText("Result: " + decString);
+                        button.setEnabled(true);
                         System.out.println(decString);
                     });
                 }
