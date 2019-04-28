@@ -100,14 +100,16 @@ public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
         CompletableFuture<BigDecimal> future = nom.thenCombine(denom, (bigInteger, bigInteger2) -> new BigDecimal(bigInteger)
                 .divide(new BigDecimal(bigInteger2), context)
                 .stripTrailingZeros());
-        future.thenAccept((i) -> System.out.println("Finished calculating: " + k));
         return future;
     }
 
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
         IntStream intStream = IntStream.rangeClosed(0, n);
         Stream<CompletableFuture<BigDecimal>> lotOfWork = intStream.mapToObj(value -> chudnovskyNumber(value, context));
-        CompletableFuture<BigDecimal> result = lotOfWork.reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
+        CompletableFuture<BigDecimal> result = lotOfWork.reduce((a, b) -> {
+            CompletableFuture<BigDecimal> c = a.thenCombine(b, BigDecimal::add);
+            return c;
+        })
                 .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
         return result;
     }
@@ -118,6 +120,4 @@ public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
                 .thenApply(i -> new BigDecimal(number4).multiply(i))
                 .thenApply(BigDecimal::stripTrailingZeros);
     }
-
-
 }
