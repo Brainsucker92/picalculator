@@ -1,15 +1,14 @@
-package calculator;
+package calculator.impl;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
-public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
+public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     private static final BigInteger number0 = BigInteger.valueOf(545140134);
     private static final BigInteger number1 = BigInteger.valueOf(-262537412640768000L);
@@ -17,31 +16,8 @@ public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
     private static final BigInteger number3 = BigInteger.valueOf(10005);
     private static final BigInteger number4 = BigInteger.valueOf(426880);
 
-    private ExecutorService service;
-
     public ChudnovskyCalculator(ExecutorService service) {
-        this.service = service;
-    }
-
-
-    @Override
-    public BigDecimal calculate(int iterations) {
-        try {
-            return calculateAsync(iterations).get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-        throw new RuntimeException();
-    }
-
-    @Override
-    public BigDecimal calculate(int iterations, MathContext precision) {
-        try {
-            return calculateAsync(iterations, precision).get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-        throw new RuntimeException();
+        super(service);
     }
 
     public CompletableFuture<BigDecimal> calculateAsync(int iterations) {
@@ -56,12 +32,6 @@ public class ChudnovskyCalculator implements AsyncPiCalculator, PiCalculator {
         }
         return chudnovsky(iterations, precision);
     }
-
-    @Override
-    public void setExecutorService(ExecutorService service) {
-        this.service = service;
-    }
-
 
     private BigInteger factorial(int n) {
         if (n <= 1) {

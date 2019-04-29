@@ -1,6 +1,7 @@
 package start;
 
-import calculator.ChudnovskyCalculator;
+import calculator.PiCalculator;
+import calculator.impl.BaileyBorweinPlouffeCalculator;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
+    private PiCalculator calculator;
+
     public static void main(String[] args) {
         Main main = new Main();
         main.start();
@@ -26,7 +29,8 @@ public class Main {
         //service = Executors.newFixedThreadPool(4); // 1.
         // service = Executors.newCachedThreadPool(); // 2.
         service = Executors.newWorkStealingPool(); // 3.
-        ChudnovskyCalculator calculator = new ChudnovskyCalculator(service);
+        //AsyncPiCalculator calculator = new ChudnovskyCalculator(service);
+        calculator = new BaileyBorweinPlouffeCalculator(service);
 
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

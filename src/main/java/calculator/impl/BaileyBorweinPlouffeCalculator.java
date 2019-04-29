@@ -1,4 +1,4 @@
-package calculator;
+package calculator.impl;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -7,12 +7,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
-public class BaileyBorweinPlouffeCalculator implements AsyncPiCalculator, PiCalculator {
-
-    private ExecutorService service;
+public class BaileyBorweinPlouffeCalculator extends PiCalculatorImpl {
 
     public BaileyBorweinPlouffeCalculator(ExecutorService service) {
-        this.service = service;
+        super(service);
     }
 
     @Override
@@ -25,24 +23,6 @@ public class BaileyBorweinPlouffeCalculator implements AsyncPiCalculator, PiCalc
     public CompletableFuture<BigDecimal> calculateAsync(int iterations, MathContext precision) {
         return sumBBP(iterations, precision);
 
-    }
-
-    @Override
-    public void setExecutorService(ExecutorService service) {
-        this.service = service;
-    }
-
-    @Override
-    public BigDecimal calculate(int iterations) {
-        CompletableFuture<BigDecimal> future = calculateAsync(iterations);
-        return future.join();
-
-    }
-
-    @Override
-    public BigDecimal calculate(int iterations, MathContext precision) {
-        CompletableFuture<BigDecimal> future = calculateAsync(iterations, precision);
-        return future.join();
     }
 
     private CompletableFuture<BigDecimal> sumBBP(int k, MathContext context) {

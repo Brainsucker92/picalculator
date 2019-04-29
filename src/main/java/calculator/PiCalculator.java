@@ -1,11 +1,8 @@
 package calculator;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
+public interface PiCalculator extends AsyncPiCalculator, SyncPiCalculator {
 
-public interface PiCalculator {
+    AsyncPiCalculator parallel();
 
-    BigDecimal calculate(int iterations);
-
-    BigDecimal calculate(int iterations, MathContext precision);
+    SyncPiCalculator sequential();
 }
