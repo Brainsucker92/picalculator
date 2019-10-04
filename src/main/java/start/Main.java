@@ -1,7 +1,8 @@
 package start;
 
+import calculator.AsyncPiCalculator;
 import calculator.PiCalculator;
-import calculator.impl.BaileyBorweinPlouffeCalculator;
+import calculator.impl.ChudnovskyCalculator;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,7 +10,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,8 +29,8 @@ public class Main {
         //service = Executors.newFixedThreadPool(4); // 1.
         // service = Executors.newCachedThreadPool(); // 2.
         service = Executors.newWorkStealingPool(); // 3.
-        //AsyncPiCalculator calculator = new ChudnovskyCalculator(service);
-        calculator = new BaileyBorweinPlouffeCalculator(service);
+        AsyncPiCalculator calculator = new ChudnovskyCalculator(service);
+        //calculator = new BaileyBorweinPlouffeCalculator(service);
 
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -77,9 +77,9 @@ public class Main {
                     label.setText("Calculating");
                     button.setEnabled(false);
                     int iterations = Integer.parseInt(text);
-                    int digits = Integer.valueOf(digitsText);
+                    int digits = Integer.parseInt(digitsText);
 
-                    MathContext context = new MathContext(digits, RoundingMode.DOWN);
+                    MathContext context = new MathContext(digits);
                     CompletableFuture<BigDecimal> chudnovskyPi = calculator.calculateAsync(iterations, context);
                     chudnovskyPi.thenAccept(bigDecimal -> {
                         String decString = bigDecimal.toString();

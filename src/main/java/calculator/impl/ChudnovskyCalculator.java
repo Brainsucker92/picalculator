@@ -3,7 +3,6 @@ package calculator.impl;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
@@ -26,7 +25,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     public CompletableFuture<BigDecimal> calculateAsync(int iterations) {
-        MathContext context = new MathContext(20, RoundingMode.DOWN);
+        MathContext context = new MathContext(20);
         return calculateAsync(iterations, context);
     }
 
