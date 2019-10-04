@@ -115,10 +115,10 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     /**
      * Calculates the constant part of the Chudnovsky algorithm to a given precision
-     * The mathematical context that will be applied to the result
+     * The precision of the number cn be set via the MathContext parameter.
      *
      * @param context The mathematical context that will be applied to the result
-     * @return The constant part of the Chudnovsky algorithm
+     * @return The constant part of the Chudnovsky algorithm as CompletableFuture
      */
     private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {
 
