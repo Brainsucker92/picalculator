@@ -38,7 +38,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     /**
-     * Calculates the factorial of a given numver {@code n}
+     * Calculates the factorial of a given number {@code n}
      *
      * @param n The number to calculate the factorial of
      * @return The factorial of the number as BigInteger
