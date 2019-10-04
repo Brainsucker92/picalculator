@@ -8,6 +8,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
+/**
+ * Implements the Chudnovsky algorithm which calculates PI as an infinite sum.
+ * This is a multi-threaded high performance iterative implementation shown at Wikipedia:
+ * https://en.wikipedia.org/wiki/Chudnovsky_algorithm
+ */
 public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     private static final BigInteger number0 = BigInteger.valueOf(545140134);
@@ -33,6 +38,12 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         return chudnovsky(iterations, precision);
     }
 
+    /**
+     * Calculates the factorial of a given numver {@code n}
+     *
+     * @param n The number to calculate the factorial of
+     * @return The factorial of the number as BigInteger
+     */
     private BigInteger factorial(int n) {
         if (n <= 1) {
             return BigInteger.valueOf(1);
@@ -41,6 +52,14 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
                 .reduce(BigInteger.ONE, BigInteger::multiply);
     }
 
+    /**
+     * The Chudnovsky algorithm to calculate PI.
+     * The precision of the number can be set via the MathContext parameter.
+     *
+     * @param n       The number of iterations for the Chudnovsky sum.
+     * @param context The mathematical context that will be applied to the result
+     * @return A CompletableFuture, containing the result of the algorithm.
+     */
     private CompletableFuture<BigDecimal> chudnovsky(int n, MathContext context) {
 
         CompletableFuture<BigDecimal> constant = chudnovskyConstant(context);
@@ -48,6 +67,15 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         return constant.thenCombine(sum, (bigDecimal, bigDecimal2) -> bigDecimal.divide(bigDecimal2, context));
     }
 
+    /**
+     * Calculates the k-th Chudnovsky number
+     * This number is the k-th part of the infinite sum in the algorithm
+     * The precision of the number can be set via the MathContext parameter.
+     *
+     * @param k       The index of the number you want to calculate. (>=0)
+     * @param context The mathematical context that will be applied to the result
+     * @return A CompletableFuture, containing the result as BidDecimal
+     */
     private CompletableFuture<BigDecimal> chudnovskyNumber(int k, MathContext context) {
 
         BigInteger kBigInt = BigInteger.valueOf(k);
@@ -72,12 +100,27 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         return future;
     }
 
+    /**
+     * Calculates the sum of n Chudnovsky numbers.
+     * The precision of the number cn be set via the MathContext parameter.
+     *
+     * @param n       The index of the last number to sum
+     * @param context The mathematical context that will be applied to the result
+     * @return A CompletableFuture, containing the result of the sum
+     */
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
         return IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
                 .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
                 .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
     }
 
+    /**
+     * Calculates the constant part of the Chudnovsky algorithm to a given precision
+     * The mathematical context that will be applied to the result
+     *
+     * @param context The mathematical context that will be applied to the result
+     * @return The constant part of the Chudnovsky algorithm
+     */
     private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {
 
         return CompletableFuture.supplyAsync(() -> new BigDecimal(number3).sqrt(context), service)
