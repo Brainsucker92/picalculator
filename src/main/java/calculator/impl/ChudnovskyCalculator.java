@@ -52,6 +52,21 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     /**
+     * Calculates the number of iterations required for the specified level of precision.
+     * More information: https://mathoverflow.net/q/261162/146822
+     *
+     * @param precision The level of precision you want to calculate.
+     * @return The number of iterations required
+     */
+    public int getNumIterations(int precision) {
+        if (precision < 0) {
+            throw new IllegalArgumentException("precision argument must be >= 0");
+        }
+        long l = 151931373056000L;
+        return (int) ((precision + 2) / Math.log10(l));
+    }
+
+    /**
      * The Chudnovsky algorithm to calculate PI.
      * The precision of the number can be set via the MathContext parameter.
      *
@@ -121,7 +136,6 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @return The constant part of the Chudnovsky algorithm as CompletableFuture
      */
     private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {
-
         return CompletableFuture.supplyAsync(() -> new BigDecimal(number3).sqrt(context), service)
                 .thenApply(i -> new BigDecimal(number4).multiply(i))
                 .thenApply(BigDecimal::stripTrailingZeros);
