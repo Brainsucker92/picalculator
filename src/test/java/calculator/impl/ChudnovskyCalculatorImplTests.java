@@ -7,6 +7,12 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Adds test cases for the ChudnovskyCalculator implementation
+ *
+ * @author Stefan
+ * @version 1.0
+ */
 public class ChudnovskyCalculatorImplTests {
 
     private ChudnovskyCalculator calculator;

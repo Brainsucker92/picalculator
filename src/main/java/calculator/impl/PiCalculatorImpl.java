@@ -9,6 +9,12 @@ import java.math.MathContext;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Basic implementation for any sort of PI calculator
+ *
+ * @author Stefan
+ * @see 1.0
+ */
 public abstract class PiCalculatorImpl implements PiCalculator {
 
     ExecutorService service;

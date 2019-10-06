@@ -5,6 +5,13 @@ import java.math.MathContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Indicator interface for an asynchronous PI calculator.
+ * Calculations done by this interface will run concurrently.
+ *
+ * @author Stefan
+ * @version 1.0
+ */
 public interface AsyncPiCalculator {
 
     CompletableFuture<BigDecimal> calculateAsync(int iterations);

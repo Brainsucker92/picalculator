@@ -7,6 +7,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
+/**
+ * https://en.wikipedia.org/wiki/Bailey%E2%80%93Borwein%E2%80%93Plouffe_formula
+ *
+ * @author Stefan
+ * @version 1.0
+ */
 public class BaileyBorweinPlouffeCalculator extends PiCalculatorImpl {
 
     public BaileyBorweinPlouffeCalculator(ExecutorService service) {

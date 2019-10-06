@@ -11,6 +11,8 @@ import java.util.stream.IntStream;
  * Implements the Chudnovsky algorithm which calculates PI as an infinite sum.
  * This is a multi-threaded high performance iterative implementation shown at Wikipedia:
  * https://en.wikipedia.org/wiki/Chudnovsky_algorithm
+ * @author Stefan
+ * @version 1.0
  */
 public class ChudnovskyCalculator extends PiCalculatorImpl {
 
@@ -68,7 +70,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     /**
      * The Chudnovsky algorithm to calculate PI.
-     * The precision of the number can be set via the MathContext parameter.
+     * The desired precision of the number can be set via the MathContext parameter.
      *
      * @param n       The number of iterations for the Chudnovsky sum.
      * @param context The mathematical context that will be applied to the result
@@ -116,7 +118,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     /**
      * Calculates the sum of n Chudnovsky numbers.
-     * The precision of the number cn be set via the MathContext parameter.
+     * The precision of the number can be set via the MathContext parameter.
      *
      * @param n       The index of the last number to sum
      * @param context The mathematical context that will be applied to the result
@@ -130,7 +132,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
     /**
      * Calculates the constant part of the Chudnovsky algorithm to a given precision
-     * The precision of the number cn be set via the MathContext parameter.
+     * The precision of the number can be set via the MathContext parameter.
      *
      * @param context The mathematical context that will be applied to the result
      * @return The constant part of the Chudnovsky algorithm as CompletableFuture
