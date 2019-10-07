@@ -65,7 +65,23 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
             throw new IllegalArgumentException("precision argument must be >= 0");
         }
         long l = 151931373056000L;
-        return (int) ((precision + 2) / Math.log10(l));
+        double precisionPerIteration = Math.log10(l);
+        return (int) (precision / precisionPerIteration);
+    }
+
+    /**
+     * Returns the number of digits that can be calculated precisely with a given amount of iterations.
+     *
+     * @param iterations The number of iterations you want to calculate
+     * @return The number of digits that will be correct
+     */
+    public int getPrecision(int iterations) {
+        if (iterations < 0) {
+            throw new IllegalArgumentException("iterations argument must be >= 0");
+        }
+        long l = 151931373056000L;
+        double precisionPerIteration = Math.log10(l);
+        return (int) (iterations * precisionPerIteration);
     }
 
     /**
@@ -110,6 +126,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         CompletableFuture<BigInteger> denom = future2.thenCombine(future3, BigInteger::multiply)
                 .thenCombine(future4, BigInteger::multiply);
 
+        @SuppressWarnings("unused")
         CompletableFuture<BigDecimal> future = nom.thenCombine(denom, (bigInteger, bigInteger2) -> new BigDecimal(bigInteger)
                 .divide(new BigDecimal(bigInteger2), context)
                 .stripTrailingZeros());
