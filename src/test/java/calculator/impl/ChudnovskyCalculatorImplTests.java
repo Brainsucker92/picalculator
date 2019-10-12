@@ -1,12 +1,15 @@
 package calculator.impl;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Adds test cases for the ChudnovskyCalculator implementation
@@ -43,6 +46,26 @@ public class ChudnovskyCalculatorImplTests {
         Assertions.assertEquals(3525, calculator.getNumIterations(50000));
         Assertions.assertEquals(8814, calculator.getNumIterations(125000));
         Assertions.assertEquals(70513, calculator.getNumIterations(1000000));
+    }
+
+    @Test
+    public void testFactorial() {
+        try {
+            Method factorial = ChudnovskyCalculator.class.getDeclaredMethod("factorial", int.class);
+            factorial.setAccessible(true);
+
+            Assertions.assertEquals(factorial.invoke(calculator, 0), BigInteger.valueOf(1));
+            Assertions.assertEquals(factorial.invoke(calculator, -1), BigInteger.valueOf(1));
+            Assertions.assertEquals(factorial.invoke(calculator, 2), BigInteger.valueOf(2));
+            Assertions.assertEquals(factorial.invoke(calculator, 3), BigInteger.valueOf(6));
+            Assertions.assertEquals(factorial.invoke(calculator, 4), BigInteger.valueOf(24));
+            Assertions.assertEquals(factorial.invoke(calculator, 5), BigInteger.valueOf(120));
+            Assertions.assertEquals(factorial.invoke(calculator, 6), BigInteger.valueOf(720));
+            Assertions.assertEquals(factorial.invoke(calculator, 10), BigInteger.valueOf(3628800));
+            Assertions.assertEquals(factorial.invoke(calculator, 15), BigInteger.valueOf(1307674368000L));
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
