@@ -8,9 +8,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
 /**
- * Implements the Chudnovsky algorithm which calculates PI as an infinite sum.
- * This is a multi-threaded high performance iterative implementation shown at Wikipedia:
- * https://en.wikipedia.org/wiki/Chudnovsky_algorithm
+ * Implements the Chudnovsky algorithm which calculates PI as an infinite sum. This is a multi-threaded high performance
+ * iterative implementation shown at Wikipedia: https://en.wikipedia.org/wiki/Chudnovsky_algorithm
+ *
  * @author Stefan
  * @version 1.0
  */
@@ -49,13 +49,13 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         if (n <= 1) {
             return BigInteger.valueOf(1);
         }
-        return IntStream.rangeClosed(2, n).mapToObj(BigInteger::valueOf)
-                .reduce(BigInteger.ONE, BigInteger::multiply);
+        return IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
+                        .reduce(BigInteger.TWO, BigInteger::multiply);
     }
 
     /**
-     * Calculates the number of iterations required for the specified level of precision.
-     * More information: https://mathoverflow.net/q/261162/146822
+     * Calculates the number of iterations required for the specified level of precision. More information:
+     * https://mathoverflow.net/q/261162/146822
      *
      * @param precision The level of precision you want to calculate.
      * @return The number of iterations required
@@ -85,8 +85,8 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     /**
-     * The Chudnovsky algorithm to calculate PI.
-     * The desired precision of the number can be set via the MathContext parameter.
+     * The Chudnovsky algorithm to calculate PI. The desired precision of the number can be set via the MathContext
+     * parameter.
      *
      * @param n       The number of iterations for the Chudnovsky sum.
      * @param context The mathematical context that will be applied to the result
@@ -100,31 +100,17 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     /**
-     * Calculates the k-th Chudnovsky number
-     * This number is the k-th part of the infinite sum in the algorithm
-     * The precision of the number can be set via the MathContext parameter.
+     * Calculates the k-th Chudnovsky number This number is the k-th part of the infinite sum in the algorithm The
+     * precision of the number can be set via the MathContext parameter.
      *
      * @param k       The index of the number you want to calculate. (>=0)
      * @param context The mathematical context that will be applied to the result
-     * @return A CompletableFuture, containing the result as BidDecimal
+     * @return A CompletableFuture, containing the result as BigDecimal
      */
     private CompletableFuture<BigDecimal> chudnovskyNumber(int k, MathContext context) {
 
-        BigInteger kBigInt = BigInteger.valueOf(k);
-
-        CompletableFuture<BigInteger> future0 = CompletableFuture.supplyAsync(() -> 6 * k, service)
-                .thenApply(this::factorial);
-        CompletableFuture<BigInteger> future1 = CompletableFuture.supplyAsync(() -> number0.multiply(kBigInt), service)
-                .thenApply(i -> i.add(number2));
-        CompletableFuture<BigInteger> future2 = CompletableFuture.supplyAsync(() -> 3 * k, service)
-                .thenApply(this::factorial);
-        CompletableFuture<BigInteger> future3 = CompletableFuture.supplyAsync(() -> factorial(k), service)
-                .thenApply(i -> i.pow(3));
-        CompletableFuture<BigInteger> future4 = CompletableFuture.supplyAsync(() -> number1.pow(k), service);
-
-        CompletableFuture<BigInteger> nom = future0.thenCombine(future1, BigInteger::multiply);
-        CompletableFuture<BigInteger> denom = future2.thenCombine(future3, BigInteger::multiply)
-                .thenCombine(future4, BigInteger::multiply);
+        CompletableFuture<BigInteger> nom = calculateNominator(k);
+        CompletableFuture<BigInteger> denom = calculateDenominator(k);
 
         @SuppressWarnings("unused")
         CompletableFuture<BigDecimal> future = nom.thenCombine(denom, (bigInteger, bigInteger2) -> new BigDecimal(bigInteger)
@@ -134,8 +120,45 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     }
 
     /**
-     * Calculates the sum of n Chudnovsky numbers.
-     * The precision of the number can be set via the MathContext parameter.
+     * Calculates the nominator of the Chudnovsky infinite sum
+     *
+     * @param k The index of the number you want to calculate. (>=0)
+     * @return A CompletableFuture, containing the result as BigInteger
+     */
+    private CompletableFuture<BigInteger> calculateNominator(int k) {
+        BigInteger kBigInt = BigInteger.valueOf(k);
+
+        CompletableFuture<BigInteger> future0 = CompletableFuture.supplyAsync(() -> 6 * k, service)
+                                                                 .thenApply(this::factorial);
+        CompletableFuture<BigInteger> future1 = CompletableFuture.supplyAsync(() -> number0.multiply(kBigInt), service)
+                                                                 .thenApply(i -> i.add(number2));
+        @SuppressWarnings("unused")
+        CompletableFuture<BigInteger> nom = future0.thenCombine(future1, BigInteger::multiply);
+        return nom;
+    }
+
+    /**
+     * Calculates the denominator of the Chudnovsky infinite sum
+     *
+     * @param k The index of the number you want to calculate. (>=0)
+     * @return A CompletableFuture, containing the result as BigInteger
+     */
+    private CompletableFuture<BigInteger> calculateDenominator(int k) {
+        CompletableFuture<BigInteger> future2 = CompletableFuture.supplyAsync(() -> 3 * k, service)
+                                                                 .thenApply(this::factorial);
+        CompletableFuture<BigInteger> future3 = CompletableFuture.supplyAsync(() -> factorial(k), service)
+                                                                 .thenApply(i -> i.pow(3));
+        CompletableFuture<BigInteger> future4 = CompletableFuture.supplyAsync(() -> number1.pow(k), service);
+
+        @SuppressWarnings("unused")
+        CompletableFuture<BigInteger> denom = future2.thenCombine(future3, BigInteger::multiply)
+                                                     .thenCombine(future4, BigInteger::multiply);
+        return denom;
+    }
+
+    /**
+     * Calculates the sum of n Chudnovsky numbers. The precision of the number can be set via the MathContext
+     * parameter.
      *
      * @param n       The index of the last number to sum
      * @param context The mathematical context that will be applied to the result
@@ -143,20 +166,20 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      */
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
         return IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
-                .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
-                .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
+                        .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
+                        .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
     }
 
     /**
-     * Calculates the constant part of the Chudnovsky algorithm to a given precision
-     * The precision of the number can be set via the MathContext parameter.
+     * Calculates the constant part of the Chudnovsky algorithm to a given precision The precision of the number can be
+     * set via the MathContext parameter.
      *
      * @param context The mathematical context that will be applied to the result
      * @return The constant part of the Chudnovsky algorithm as CompletableFuture
      */
     private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {
         return CompletableFuture.supplyAsync(() -> new BigDecimal(number3).sqrt(context), service)
-                .thenApply(i -> new BigDecimal(number4).multiply(i))
-                .thenApply(BigDecimal::stripTrailingZeros);
+                                .thenApply(i -> new BigDecimal(number4).multiply(i))
+                                .thenApply(BigDecimal::stripTrailingZeros);
     }
 }
