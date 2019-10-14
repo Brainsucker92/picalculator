@@ -1,24 +1,28 @@
 package start;
 
-import calculator.PiCalculator;
-import calculator.impl.ChudnovskyCalculator;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import calculator.PiCalculator;
+import calculator.impl.ChudnovskyCalculator;
+
 public class Main {
 
     private PiCalculator calculator;
-    ExecutorService service;
+    private ExecutorService service;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -96,7 +100,7 @@ public class Main {
                         requiredIterationsField.setText("UNKNOWN");
                     }
 
-                    MathContext context = new MathContext(digits, RoundingMode.HALF_UP);
+                    MathContext context = new MathContext(digits);
                     CompletableFuture<BigDecimal> chudnovskyPi = calculator.calculateAsync(iterations, context);
                     abortButton.setEnabled(true);
                     chudnovskyPi.thenAccept(bigDecimal -> {
@@ -112,6 +116,7 @@ public class Main {
         });
 
         abortButton.addActionListener(e -> {
+            // TODO use CompletableFuture::cancel instead
             System.out.println("Aborting...");
             service.shutdownNow();
             abortButton.setEnabled(false);
