@@ -114,6 +114,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
         @SuppressWarnings("unused")
         CompletableFuture<BigDecimal> future = nom.thenCombine(denom, (bigInteger, bigInteger2) -> new BigDecimal(bigInteger)
+                // Unfortunately this operation cannot be made more concurrently.
                 .divide(new BigDecimal(bigInteger2), context)
                 .stripTrailingZeros());
         return future;
@@ -165,9 +166,9 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @return A CompletableFuture, containing the result of the sum
      */
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
-        return IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
-                        .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
-                        .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
+        return CompletableFuture.supplyAsync(() -> IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
+                                                            .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
+                                                            .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO)).join(), service);
     }
 
     /**
