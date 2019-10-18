@@ -3,8 +3,10 @@ package calculator.impl;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -118,6 +120,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
                         // Unfortunately this operation cannot be made more concurrently.
                         .divide(new BigDecimal(bigInteger2), context)
                         .stripTrailingZeros());
+        future.thenAccept(result -> iterationCompleted(k, result));
         return future;
     }
 
@@ -169,10 +172,13 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @return A CompletableFuture, containing the result of the sum
      */
     private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
-        return CompletableFuture.supplyAsync(() ->
-                IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context))
-                         .reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
-                         .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO)).join(), service);
+        return CompletableFuture.supplyAsync(() -> {
+            List<CompletableFuture<BigDecimal>> tasks =
+                    IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context)).collect(Collectors.toList());
+
+            return tasks.stream().reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
+                        .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO)).join();
+        }, service);
     }
 
     /**
