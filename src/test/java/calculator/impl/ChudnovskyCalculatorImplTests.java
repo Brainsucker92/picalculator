@@ -8,7 +8,6 @@ import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -54,24 +53,19 @@ public class ChudnovskyCalculatorImplTests {
             Method factorial = ChudnovskyCalculator.class.getDeclaredMethod("factorial", int.class);
             factorial.setAccessible(true);
 
-            Assertions.assertEquals(factorial.invoke(calculator, 0), BigInteger.valueOf(1));
-            Assertions.assertEquals(factorial.invoke(calculator, -1), BigInteger.valueOf(1));
-            Assertions.assertEquals(factorial.invoke(calculator, 2), BigInteger.valueOf(2));
-            Assertions.assertEquals(factorial.invoke(calculator, 3), BigInteger.valueOf(6));
-            Assertions.assertEquals(factorial.invoke(calculator, 4), BigInteger.valueOf(24));
-            Assertions.assertEquals(factorial.invoke(calculator, 5), BigInteger.valueOf(120));
-            Assertions.assertEquals(factorial.invoke(calculator, 6), BigInteger.valueOf(720));
-            Assertions.assertEquals(factorial.invoke(calculator, 10), BigInteger.valueOf(3628800));
-            Assertions.assertEquals(factorial.invoke(calculator, 15), BigInteger.valueOf(1307674368000L));
+            Assertions.assertThrows(InvocationTargetException.class, () -> factorial.invoke(calculator, -1));
+
+            Assertions.assertEquals(BigInteger.valueOf(1), factorial.invoke(calculator, 0));
+            Assertions.assertEquals(BigInteger.valueOf(1), factorial.invoke(calculator, 1));
+            Assertions.assertEquals(BigInteger.valueOf(2), factorial.invoke(calculator, 2));
+            Assertions.assertEquals(BigInteger.valueOf(6), factorial.invoke(calculator, 3));
+            Assertions.assertEquals(BigInteger.valueOf(24), factorial.invoke(calculator, 4));
+            Assertions.assertEquals(BigInteger.valueOf(120), factorial.invoke(calculator, 5));
+            Assertions.assertEquals(BigInteger.valueOf(720), factorial.invoke(calculator, 6));
+            Assertions.assertEquals(BigInteger.valueOf(3628800), factorial.invoke(calculator, 10));
+            Assertions.assertEquals(BigInteger.valueOf(1307674368000L), factorial.invoke(calculator, 15));
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
-    }
-
-    @Test
-    @Disabled
-    public void getPrecisionTest() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> calculator.getPrecision(-1));
-        // TODO
     }
 }

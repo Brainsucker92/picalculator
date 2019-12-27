@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import calculator.PiCalculator;
+import calculator.PiCalculatorListener;
 import calculator.impl.ChudnovskyCalculator;
 
 public class Main {
@@ -54,13 +55,17 @@ public class Main {
         iterationsField.setEditable(true);
         iterationsField.setToolTipText("Number of iterations");
 
-        JTextField requiredIterationsField = new JTextField(10);
-        requiredIterationsField.setEditable(false);
-        requiredIterationsField.setToolTipText("Required iterations");
+        JTextField correctDigitsField = new JTextField(10);
+        correctDigitsField.setEditable(false);
+        correctDigitsField.setToolTipText("Correct digits");
 
         JTextField digitsField = new JTextField(10);
         digitsField.setToolTipText("Number of digits");
         digitsField.setEditable(true);
+
+        PiCalculatorListener listener = (index, result) -> System.out.println(String.format("Completed iteration: %s", index));
+
+        calculator.addListener(listener);
 
         JLabel label = new JLabel();
         label.setText("Text");
@@ -94,10 +99,10 @@ public class Main {
 
                     if (calculator instanceof ChudnovskyCalculator) {
                         ChudnovskyCalculator chudCalc = (ChudnovskyCalculator) calculator;
-                        int numIterations = chudCalc.getNumIterations(digits);
-                        requiredIterationsField.setText(String.valueOf(numIterations));
+                        int numIterations = chudCalc.getPrecision(iterations);
+                        correctDigitsField.setText(String.valueOf(numIterations));
                     } else {
-                        requiredIterationsField.setText("UNKNOWN");
+                        correctDigitsField.setText("UNKNOWN");
                     }
 
                     MathContext context = new MathContext(digits);
@@ -129,7 +134,7 @@ public class Main {
         panel.add(button);
         panel.add(iterationsField);
         panel.add(digitsField);
-        panel.add(requiredIterationsField);
+        panel.add(correctDigitsField);
         panel.add(abortButton);
         panel.add(label);
         frame.add(panel);
@@ -151,5 +156,6 @@ public class Main {
 
     private void initExecutorService() {
         service = Executors.newWorkStealingPool();
+        // service = Executors.newFixedThreadPool(8);
     }
 }

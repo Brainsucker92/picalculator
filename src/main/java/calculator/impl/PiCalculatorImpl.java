@@ -21,7 +21,7 @@ import calculator.SyncPiCalculator;
 public abstract class PiCalculatorImpl implements PiCalculator {
 
     ExecutorService service;
-    private Set<PiCalculatorListener> listeners;
+    protected Set<PiCalculatorListener> listeners;
 
     PiCalculatorImpl(ExecutorService service) {
         this.service = service;
@@ -78,7 +78,14 @@ public abstract class PiCalculatorImpl implements PiCalculator {
         return listeners.contains(listener);
     }
 
+    /**
+     * Call this method as soon as one iteration of the calculation has been completed. This method will invoke the
+     * notifyIterationCompleted method on each listener.
+     *
+     * @param index  The index of the iteration that has been completed.
+     * @param result The result of the iteration that has been completed.
+     */
     void iterationCompleted(int index, BigDecimal result) {
-        listeners.forEach(l -> l.notifyIterationCompleted(index, result));
+        listeners.forEach(listener -> listener.notifyIterationCompleted(index, result));
     }
 }

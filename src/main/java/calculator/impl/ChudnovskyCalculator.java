@@ -3,11 +3,11 @@ package calculator.impl;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import calculator.PiCalculatorListener;
 
 /**
  * Implements the Chudnovsky algorithm which calculates PI as an infinite sum. This is a multi-threaded high performance
@@ -23,6 +23,9 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     private static final BigInteger number2 = BigInteger.valueOf(13591409);
     private static final BigInteger number3 = BigInteger.valueOf(10005);
     private static final BigInteger number4 = BigInteger.valueOf(426880);
+
+    // TODO use this in future
+    // private FactorialCalculator<BigInteger> factorialCalculator;
 
     public ChudnovskyCalculator(ExecutorService service) {
         super(service);
@@ -48,11 +51,35 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @return The factorial of the number as BigInteger
      */
     private BigInteger factorial(int n) {
-        if (n <= 1) {
-            return BigInteger.valueOf(1);
+        return factorialAsync(n).join();
+    }
+
+    private CompletableFuture<BigInteger> factorialService(int n) {
+        CompletableFuture<BigInteger> future = new CompletableFuture<>();
+
+        service.submit(() -> {
+            if (n < 0) {
+                future.completeExceptionally(new UnsupportedOperationException("Cannot calculate factorial of negative numbers."));
+            } else if (n < 2) {
+                future.complete(BigInteger.ONE);
+            }
+            BigInteger bigInteger = IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
+                                             .reduce(BigInteger.TWO, BigInteger::multiply);
+            future.complete(bigInteger);
+        });
+
+        return future;
+    }
+
+    private CompletableFuture<BigInteger> factorialAsync(int n) {
+        if (n < 0) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Cannot calculate factorial of negative numbers."));
+        } else if (n >= 2) {
+            return CompletableFuture.supplyAsync(() -> IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
+                                                                .reduce(BigInteger.TWO, BigInteger::multiply), service);
         }
-        return IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
-                        .reduce(BigInteger.TWO, BigInteger::multiply);
+
+        return CompletableFuture.completedFuture(BigInteger.ONE);
     }
 
     /**
@@ -83,7 +110,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         }
         long l = 151931373056000L;
         double precisionPerIteration = Math.log10(l);
-        return (int) (iterations * precisionPerIteration);
+        return (int) ((iterations + 1) * precisionPerIteration);
     }
 
     /**
@@ -96,8 +123,8 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      */
     private CompletableFuture<BigDecimal> chudnovsky(int n, MathContext context) {
 
-        CompletableFuture<BigDecimal> constant = chudnovskyConstant(context);
-        CompletableFuture<BigDecimal> sum = chudnovskySum(n, context);
+        CompletableFuture<BigDecimal> constant = chudnovskyConstantAsync(context);
+        CompletableFuture<BigDecimal> sum = chudnovskySumAsync(n, context);
         return constant.thenCombine(sum, (bigDecimal, bigDecimal2) -> bigDecimal.divide(bigDecimal2, context));
     }
 
@@ -109,13 +136,13 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @param context The mathematical context that will be applied to the result
      * @return A CompletableFuture, containing the result as BigDecimal
      */
-    private CompletableFuture<BigDecimal> chudnovskyNumber(int k, MathContext context) {
+    private CompletableFuture<BigDecimal> chudnovskyNumberAsync(int k, MathContext context) {
 
-        CompletableFuture<BigInteger> nom = calculateNominator(k);
-        CompletableFuture<BigInteger> denom = calculateDenominator(k);
+        CompletableFuture<BigInteger> nominator = calculateNominatorAsync(k);
+        CompletableFuture<BigInteger> denominator = calculateDenominatorAsync(k);
 
         @SuppressWarnings("unused")
-        CompletableFuture<BigDecimal> future = nom.thenCombine(denom,
+        CompletableFuture<BigDecimal> future = nominator.thenCombine(denominator,
                 (bigInteger, bigInteger2) -> new BigDecimal(bigInteger)
                         // Unfortunately this operation cannot be made more concurrently.
                         .divide(new BigDecimal(bigInteger2), context)
@@ -130,18 +157,22 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @param k The index of the number you want to calculate. (>=0)
      * @return A CompletableFuture, containing the result as BigInteger
      */
-    private CompletableFuture<BigInteger> calculateNominator(int k) {
+    private CompletableFuture<BigInteger> calculateNominatorAsync(int k) {
         BigInteger kBigInt = BigInteger.valueOf(k);
 
         CompletableFuture<BigInteger> future0 =
                 CompletableFuture.supplyAsync(() -> 6 * k, service)
-                                 .thenApply(this::factorial);
+                                 .thenCompose(this::factorialAsync);
         CompletableFuture<BigInteger> future1 =
                 CompletableFuture.supplyAsync(() -> number0.multiply(kBigInt), service)
                                  .thenApply(i -> i.add(number2));
         @SuppressWarnings("unused")
-        CompletableFuture<BigInteger> nom = future0.thenCombine(future1, BigInteger::multiply);
-        return nom;
+        CompletableFuture<BigInteger> nominator = future0.thenCombine(future1, BigInteger::multiply);
+        nominator.thenAccept(result -> listeners.stream()
+                                                .filter(l -> l instanceof ChudnovskyCalculatorListener)
+                                                .forEach(listener ->
+                                                        ((ChudnovskyCalculatorListener) listener).notifyNominatorCalculationCompleted(k, result)));
+        return nominator;
     }
 
     /**
@@ -150,17 +181,21 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @param k The index of the number you want to calculate. (>=0)
      * @return A CompletableFuture, containing the result as BigInteger
      */
-    private CompletableFuture<BigInteger> calculateDenominator(int k) {
+    private CompletableFuture<BigInteger> calculateDenominatorAsync(int k) {
         CompletableFuture<BigInteger> future2 = CompletableFuture.supplyAsync(() -> 3 * k, service)
-                                                                 .thenApply(this::factorial);
-        CompletableFuture<BigInteger> future3 = CompletableFuture.supplyAsync(() -> factorial(k), service)
-                                                                 .thenApply(i -> i.pow(3));
+                                                                 .thenCompose(this::factorialAsync);
+        CompletableFuture<BigInteger> future3 = this.factorialAsync(k)
+                                                    .thenApply(i -> i.pow(3));
         CompletableFuture<BigInteger> future4 = CompletableFuture.supplyAsync(() -> number1.pow(k), service);
 
         @SuppressWarnings("unused")
-        CompletableFuture<BigInteger> denom = future2.thenCombine(future3, BigInteger::multiply)
-                                                     .thenCombine(future4, BigInteger::multiply);
-        return denom;
+        CompletableFuture<BigInteger> denominator = future2.thenCombine(future3, BigInteger::multiply)
+                                                           .thenCombine(future4, BigInteger::multiply);
+        denominator.thenAccept(result -> listeners.stream()
+                                                  .filter(listener -> listener instanceof ChudnovskyCalculatorListener)
+                                                  .forEach(listener ->
+                                                          ((ChudnovskyCalculatorListener) listener).notifyDenominatorCalculationCompleted(k, result)));
+        return denominator;
     }
 
     /**
@@ -171,26 +206,56 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @param context The mathematical context that will be applied to the result
      * @return A CompletableFuture, containing the result of the sum
      */
-    private CompletableFuture<BigDecimal> chudnovskySum(int n, MathContext context) {
-        return CompletableFuture.supplyAsync(() -> {
-            List<CompletableFuture<BigDecimal>> tasks =
-                    IntStream.rangeClosed(0, n).mapToObj(value -> chudnovskyNumber(value, context)).collect(Collectors.toList());
-
-            return tasks.stream().reduce((a, b) -> a.thenCombine(b, BigDecimal::add))
-                        .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO)).join();
-        }, service);
+    private CompletableFuture<BigDecimal> chudnovskySumAsync(int n, MathContext context) {
+        return IntStream.rangeClosed(0, n)
+                        .mapToObj(value -> chudnovskyNumberAsync(value, context))
+                        .parallel()
+                        .reduce(CompletableFuture.completedFuture(BigDecimal.ZERO),
+                                (a, b) -> a.thenCombine(b, BigDecimal::add));
     }
 
     /**
-     * Calculates the constant part of the Chudnovsky algorithm to a given precision The precision of the number can be
+     * Calculates the constant part of the Chudnovsky algorithm to a given precision. The precision of the number can be
      * set via the MathContext parameter.
      *
      * @param context The mathematical context that will be applied to the result
      * @return The constant part of the Chudnovsky algorithm as CompletableFuture
      */
-    private CompletableFuture<BigDecimal> chudnovskyConstant(MathContext context) {
-        return CompletableFuture.supplyAsync(() -> new BigDecimal(number3).sqrt(context), service)
-                                .thenApply(i -> new BigDecimal(number4).multiply(i))
-                                .thenApply(BigDecimal::stripTrailingZeros);
+    private CompletableFuture<BigDecimal> chudnovskyConstantAsync(MathContext context) {
+        CompletableFuture<BigDecimal> constant = CompletableFuture.supplyAsync(() -> new BigDecimal(number3).sqrt(context), service)
+                                                                  .thenApply(i -> new BigDecimal(number4).multiply(i))
+                                                                  .thenApply(BigDecimal::stripTrailingZeros);
+
+        constant.thenAccept(result -> listeners.stream().filter(listener -> listener instanceof ChudnovskyCalculatorListener)
+                                               .forEach(listener -> ((ChudnovskyCalculatorListener) listener).notifyConstantCalculationCompleted(result)));
+        return constant;
+    }
+
+    public interface ChudnovskyCalculatorListener extends PiCalculatorListener {
+
+        void notifyDenominatorCalculationCompleted(int k, BigInteger result);
+
+        void notifyNominatorCalculationCompleted(int k, BigInteger result);
+
+        void notifyConstantCalculationCompleted(BigDecimal result);
+    }
+
+    public class ChudnovskyCalculatorAdapter implements ChudnovskyCalculatorListener {
+
+        @Override
+        public void notifyIterationCompleted(int index, BigDecimal result) {
+        }
+
+        @Override
+        public void notifyDenominatorCalculationCompleted(int k, BigInteger result) {
+        }
+
+        @Override
+        public void notifyNominatorCalculationCompleted(int k, BigInteger result) {
+        }
+
+        @Override
+        public void notifyConstantCalculationCompleted(BigDecimal result) {
+        }
     }
 }
