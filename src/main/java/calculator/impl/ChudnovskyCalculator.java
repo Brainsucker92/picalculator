@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
 import calculator.PiCalculatorListener;
+import com.google.common.math.BigIntegerMath;
 
 /**
  * Implements the Chudnovsky algorithm which calculates PI as an infinite sum. This is a multi-threaded high performance
@@ -69,6 +70,10 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
         });
 
         return future;
+    }
+
+    private CompletableFuture<BigInteger> factorialGuava(int n) {
+        return CompletableFuture.supplyAsync(() -> BigIntegerMath.factorial(n), service);
     }
 
     private CompletableFuture<BigInteger> factorialAsync(int n) {
@@ -162,14 +167,14 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
         CompletableFuture<BigInteger> future0 =
                 CompletableFuture.supplyAsync(() -> 6 * k, service)
-                                 .thenCompose(this::factorialAsync);
+                                 .thenCompose(this::factorialGuava);
         CompletableFuture<BigInteger> future1 =
                 CompletableFuture.supplyAsync(() -> number0.multiply(kBigInt), service)
                                  .thenApply(i -> i.add(number2));
         @SuppressWarnings("unused")
         CompletableFuture<BigInteger> nominator = future0.thenCombine(future1, BigInteger::multiply);
         nominator.thenAccept(result -> listeners.stream()
-                                                .filter(l -> l instanceof ChudnovskyCalculatorListener)
+                                                .filter(listener -> listener instanceof ChudnovskyCalculatorListener)
                                                 .forEach(listener ->
                                                         ((ChudnovskyCalculatorListener) listener).notifyNominatorCalculationCompleted(k, result)));
         return nominator;
@@ -183,8 +188,8 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      */
     private CompletableFuture<BigInteger> calculateDenominatorAsync(int k) {
         CompletableFuture<BigInteger> future2 = CompletableFuture.supplyAsync(() -> 3 * k, service)
-                                                                 .thenCompose(this::factorialAsync);
-        CompletableFuture<BigInteger> future3 = this.factorialAsync(k)
+                                                                 .thenCompose(this::factorialGuava);
+        CompletableFuture<BigInteger> future3 = this.factorialGuava(k)
                                                     .thenApply(i -> i.pow(3));
         CompletableFuture<BigInteger> future4 = CompletableFuture.supplyAsync(() -> number1.pow(k), service);
 
