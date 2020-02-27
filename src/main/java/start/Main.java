@@ -144,7 +144,8 @@ public class Main {
             public void windowClosing(WindowEvent e) {
                 service.shutdown();
                 try {
-                    service.awaitTermination(5, TimeUnit.SECONDS);
+                    label.setText("Terminating application");
+                    boolean terminated = service.awaitTermination(5, TimeUnit.SECONDS);
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
                 }
@@ -156,6 +157,8 @@ public class Main {
 
     private void initExecutorService() {
         service = Executors.newWorkStealingPool();
+        // service = Executors.newSingleThreadExecutor();
         // service = Executors.newFixedThreadPool(8);
+        // service = Executors.newCachedThreadPool();
     }
 }

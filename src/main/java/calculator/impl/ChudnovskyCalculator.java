@@ -6,9 +6,12 @@ import java.math.MathContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import calculator.PiCalculatorListener;
-import com.google.common.math.BigIntegerMath;
+import factorial.FactorialCalculator;
+import factorial.impl.GuavaFactorialCalculator;
+import factorial.impl.MemoizeFactorialCalculator;
 
 /**
  * Implements the Chudnovsky algorithm which calculates PI as an infinite sum. This is a multi-threaded high performance
@@ -25,11 +28,17 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
     private static final BigInteger number3 = BigInteger.valueOf(10005);
     private static final BigInteger number4 = BigInteger.valueOf(426880);
 
-    // TODO use this in future
-    // private FactorialCalculator<BigInteger> factorialCalculator;
+    private final FactorialCalculator<BigInteger> factorialCalculator;
 
     public ChudnovskyCalculator(ExecutorService service) {
         super(service);
+        FactorialCalculator<BigInteger> calculator = new GuavaFactorialCalculator();
+        this.factorialCalculator = new MemoizeFactorialCalculator<>(calculator);
+    }
+
+    public ChudnovskyCalculator(ExecutorService service, FactorialCalculator<BigInteger> calculator) {
+        super(service);
+        this.factorialCalculator = calculator;
     }
 
     public CompletableFuture<BigDecimal> calculateAsync(int iterations) {
@@ -43,48 +52,6 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
             throw new IllegalArgumentException();
         }
         return chudnovsky(iterations, precision);
-    }
-
-    /**
-     * Calculates the factorial of a given number {@code n}
-     *
-     * @param n The number to calculate the factorial of
-     * @return The factorial of the number as BigInteger
-     */
-    private BigInteger factorial(int n) {
-        return factorialAsync(n).join();
-    }
-
-    private CompletableFuture<BigInteger> factorialService(int n) {
-        CompletableFuture<BigInteger> future = new CompletableFuture<>();
-
-        service.submit(() -> {
-            if (n < 0) {
-                future.completeExceptionally(new UnsupportedOperationException("Cannot calculate factorial of negative numbers."));
-            } else if (n < 2) {
-                future.complete(BigInteger.ONE);
-            }
-            BigInteger bigInteger = IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
-                                             .reduce(BigInteger.TWO, BigInteger::multiply);
-            future.complete(bigInteger);
-        });
-
-        return future;
-    }
-
-    private CompletableFuture<BigInteger> factorialGuava(int n) {
-        return CompletableFuture.supplyAsync(() -> BigIntegerMath.factorial(n), service);
-    }
-
-    private CompletableFuture<BigInteger> factorialAsync(int n) {
-        if (n < 0) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("Cannot calculate factorial of negative numbers."));
-        } else if (n >= 2) {
-            return CompletableFuture.supplyAsync(() -> IntStream.rangeClosed(3, n).mapToObj(BigInteger::valueOf)
-                                                                .reduce(BigInteger.TWO, BigInteger::multiply), service);
-        }
-
-        return CompletableFuture.completedFuture(BigInteger.ONE);
     }
 
     /**
@@ -167,7 +134,7 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
 
         CompletableFuture<BigInteger> future0 =
                 CompletableFuture.supplyAsync(() -> 6 * k, service)
-                                 .thenCompose(this::factorialGuava);
+                                 .thenApply(factorialCalculator::factorial);
         CompletableFuture<BigInteger> future1 =
                 CompletableFuture.supplyAsync(() -> number0.multiply(kBigInt), service)
                                  .thenApply(i -> i.add(number2));
@@ -188,9 +155,9 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      */
     private CompletableFuture<BigInteger> calculateDenominatorAsync(int k) {
         CompletableFuture<BigInteger> future2 = CompletableFuture.supplyAsync(() -> 3 * k, service)
-                                                                 .thenCompose(this::factorialGuava);
-        CompletableFuture<BigInteger> future3 = this.factorialGuava(k)
-                                                    .thenApply(i -> i.pow(3));
+                                                                 .thenApply(factorialCalculator::factorial);
+        CompletableFuture<BigInteger> future3 = CompletableFuture.supplyAsync(() -> factorialCalculator.factorial(k), service)
+                                                                 .thenApply(i -> i.pow(3));
         CompletableFuture<BigInteger> future4 = CompletableFuture.supplyAsync(() -> number1.pow(k), service);
 
         @SuppressWarnings("unused")
@@ -212,11 +179,16 @@ public class ChudnovskyCalculator extends PiCalculatorImpl {
      * @return A CompletableFuture, containing the result of the sum
      */
     private CompletableFuture<BigDecimal> chudnovskySumAsync(int n, MathContext context) {
-        return IntStream.rangeClosed(0, n)
-                        .mapToObj(value -> chudnovskyNumberAsync(value, context))
-                        .parallel()
-                        .reduce(CompletableFuture.completedFuture(BigDecimal.ZERO),
-                                (a, b) -> a.thenCombine(b, BigDecimal::add));
+        Stream<CompletableFuture<BigDecimal>> futureStream = IntStream.rangeClosed(0, n)
+                                                                      .parallel()
+                                                                      .mapToObj(value -> chudnovskyNumberAsync(value, context));
+        CompletableFuture<BigDecimal>[] futures = futureStream.toArray(CompletableFuture[]::new);
+        CompletableFuture<Void> streamFuture = CompletableFuture.allOf(futures);
+
+        return streamFuture.thenCompose(v -> Stream.of(futures)
+                                                   .parallel()
+                                                   .reduce(CompletableFuture.completedFuture(BigDecimal.ZERO),
+                                                           (a, b) -> a.thenCombine(b, BigDecimal::add)));
     }
 
     /**

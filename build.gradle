@@ -19,7 +19,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
 
-    // compile 'com.github.brainsucker92:factorialcalculator:1.0-SNAPSHOT'
+    compile 'com.github.brainsucker92:factorialcalculator:1.0-SNAPSHOT'
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
     compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
