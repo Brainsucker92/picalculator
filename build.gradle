@@ -9,6 +9,7 @@ sourceCompatibility = 1.9
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 test {
