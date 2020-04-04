@@ -32,10 +32,9 @@ public class BaileyBorweinPlouffeCalculator extends PiCalculatorImpl {
     }
 
     private CompletableFuture<BigDecimal> sumBBP(int k, MathContext context) {
-        return CompletableFuture.supplyAsync(() -> IntStream.rangeClosed(0, k)
-                                                            .mapToObj(i -> calculateBBP(i, context))
-                                                            .reduce((future, bigDecimal) -> future.thenCombine(bigDecimal, BigDecimal::add))
-                                                            .orElse(CompletableFuture.completedFuture(BigDecimal.ZERO)).join(), service);
+        return IntStream.rangeClosed(0, k)
+                        .mapToObj(i -> calculateBBP(i, context))
+                        .reduce((f1, f2) -> f1.thenCombine(f2, BigDecimal::add)).orElse(CompletableFuture.completedFuture(BigDecimal.ZERO));
     }
 
     private CompletableFuture<BigDecimal> calculateBBP(int k, MathContext context) {

@@ -20,4 +20,10 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
 
     implementation('com.github.brainsucker92:factorialcalculator:1.0-SNAPSHOT')
+
+    compileOnly 'org.projectlombok:lombok:1.18.12'
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.12'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.12'
 }

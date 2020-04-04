@@ -9,8 +9,10 @@ import java.util.concurrent.ExecutorService;
 
 import calculator.AsyncPiCalculator;
 import calculator.PiCalculator;
-import calculator.PiCalculatorListener;
 import calculator.SyncPiCalculator;
+import calculator.listeners.PiCalculatorEventProvider;
+import calculator.listeners.PiCalculatorListener;
+import calculator.listeners.data.IterationCompletedResult;
 
 /**
  * Basic implementation for any sort of PI calculator
@@ -18,10 +20,10 @@ import calculator.SyncPiCalculator;
  * @author Stefan
  * @see 1.0
  */
-public abstract class PiCalculatorImpl implements PiCalculator {
+public abstract class PiCalculatorImpl implements PiCalculator, PiCalculatorEventProvider {
 
-    ExecutorService service;
     protected Set<PiCalculatorListener> listeners;
+    ExecutorService service;
 
     PiCalculatorImpl(ExecutorService service) {
         this.service = service;
@@ -86,6 +88,7 @@ public abstract class PiCalculatorImpl implements PiCalculator {
      * @param result The result of the iteration that has been completed.
      */
     void iterationCompleted(int index, BigDecimal result) {
-        listeners.forEach(listener -> listener.notifyIterationCompleted(index, result));
+        IterationCompletedResult calculationResult = new IterationCompletedResult(result, index);
+        listeners.forEach(listener -> listener.notifyIterationCompleted(calculationResult));
     }
 }

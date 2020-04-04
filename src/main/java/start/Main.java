@@ -5,6 +5,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,8 +18,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import calculator.PiCalculator;
-import calculator.PiCalculatorListener;
 import calculator.impl.ChudnovskyCalculator;
+import calculator.listeners.PiCalculatorEventProvider;
+import calculator.listeners.PiCalculatorListener;
+import calculator.tools.PrecisionProvider;
 
 public class Main {
 
@@ -34,7 +37,7 @@ public class Main {
     private void start() {
         // service = Executors.newFixedThreadPool(4);
         // service = Executors.newCachedThreadPool();
-        initExecutorService();
+        this.service = createExecutorService();
         calculator = new ChudnovskyCalculator(service);
         //calculator = new BaileyBorweinPlouffeCalculator(service);
 
@@ -63,61 +66,63 @@ public class Main {
         digitsField.setToolTipText("Number of digits");
         digitsField.setEditable(true);
 
-        PiCalculatorListener listener = (index, result) -> System.out.println(String.format("Completed iteration: %s", index));
+        PiCalculatorListener listener = calculationResult -> {
+            int iterationIndex = calculationResult.getIterationIndex();
+            System.out.println("Completed Iteration: " + iterationIndex);
+        };
 
-        calculator.addListener(listener);
+        if (calculator instanceof PiCalculatorEventProvider) {
+            PiCalculatorEventProvider eventProvider = (PiCalculatorEventProvider) calculator;
+            eventProvider.addListener(listener);
+        }
 
         JLabel label = new JLabel();
         label.setText("Text");
         button.addActionListener(e -> {
-            Runnable r = () -> {
+            // Better option: disable button if input is invalid
+            boolean error = false;
+            String text = iterationsField.getText();
+            if (text.length() == 0) {
+                iterationsField.setBackground(Color.RED);
+                error = true;
+            } else {
+                iterationsField.setBackground(Color.WHITE);
+            }
+            String digitsText = digitsField.getText();
+            if (digitsText.length() == 0) {
+                digitsField.setBackground(Color.RED);
+                error = true;
+            } else {
+                digitsField.setBackground(Color.WHITE);
+            }
 
-                // Better option: disable button if input is invalid
-                boolean error = false;
-                String text = iterationsField.getText();
-                if (text.length() == 0) {
-                    iterationsField.setBackground(Color.RED);
-                    error = true;
+            if (error) {
+                label.setText("Please enter valid values.");
+            } else {
+                label.setText("Calculating");
+                button.setEnabled(false);
+                int iterations = Integer.parseInt(text);
+                int digits = Integer.parseInt(digitsText);
+
+                if (calculator instanceof PrecisionProvider) {
+                    PrecisionProvider provider = (PrecisionProvider) calculator;
+                    int numIterations = provider.getPrecision(iterations);
+                    correctDigitsField.setText(String.valueOf(numIterations));
                 } else {
-                    iterationsField.setBackground(Color.WHITE);
-                }
-                String digitsText = digitsField.getText();
-                if (digitsText.length() == 0) {
-                    digitsField.setBackground(Color.RED);
-                    error = true;
-                } else {
-                    digitsField.setBackground(Color.WHITE);
+                    correctDigitsField.setText("UNKNOWN");
                 }
 
-                if (error) {
-                    label.setText("Please enter valid values.");
-                } else {
-                    label.setText("Calculating");
-                    button.setEnabled(false);
-                    int iterations = Integer.parseInt(text);
-                    int digits = Integer.parseInt(digitsText);
-
-                    if (calculator instanceof ChudnovskyCalculator) {
-                        ChudnovskyCalculator chudCalc = (ChudnovskyCalculator) calculator;
-                        int numIterations = chudCalc.getPrecision(iterations);
-                        correctDigitsField.setText(String.valueOf(numIterations));
-                    } else {
-                        correctDigitsField.setText("UNKNOWN");
-                    }
-
-                    MathContext context = new MathContext(digits);
-                    CompletableFuture<BigDecimal> chudnovskyPi = calculator.calculateAsync(iterations, context);
-                    abortButton.setEnabled(true);
-                    chudnovskyPi.thenAccept(bigDecimal -> {
-                        String decString = bigDecimal.toString();
-                        label.setText("Result: " + decString);
-                        button.setEnabled(true);
-                        abortButton.setEnabled(false);
-                        System.out.println(decString);
-                    });
-                }
-            };
-            r.run();
+                MathContext context = new MathContext(digits, RoundingMode.HALF_EVEN);
+                CompletableFuture<BigDecimal> future = calculator.calculateAsync(iterations, context);
+                abortButton.setEnabled(true);
+                future.thenAccept(bigDecimal -> {
+                    String decString = bigDecimal.toString();
+                    label.setText("Result: " + decString);
+                    button.setEnabled(true);
+                    abortButton.setEnabled(false);
+                    System.out.println(decString);
+                });
+            }
         });
 
         abortButton.addActionListener(e -> {
@@ -125,8 +130,8 @@ public class Main {
             System.out.println("Aborting...");
             service.shutdownNow();
             abortButton.setEnabled(false);
-            initExecutorService();
-            calculator.setExecutorService(service);
+            ExecutorService executorService = createExecutorService();
+            calculator.setExecutorService(executorService);
             label.setText("Aborted");
             button.setEnabled(true);
         });
@@ -155,10 +160,12 @@ public class Main {
         frame.setVisible(true);
     }
 
-    private void initExecutorService() {
+    private ExecutorService createExecutorService() {
+        ExecutorService service;
         service = Executors.newWorkStealingPool();
         // service = Executors.newSingleThreadExecutor();
         // service = Executors.newFixedThreadPool(8);
         // service = Executors.newCachedThreadPool();
+        return service;
     }
 }
